@@ -14,6 +14,7 @@ spec:
         app: worker
     spec:
       serviceAccountName: {{ .Values.worker.serviceAccountName }}
+      terminationGracePeriodSeconds: 60
       containers:
         - name: worker
           image: "{{ .Values.worker.image.repository }}:{{ .Values.worker.image.tag }}"

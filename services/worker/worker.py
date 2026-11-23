@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import signal
 import sys
 import time
 from datetime import datetime, timezone
@@ -27,6 +28,14 @@ def log(level: str, event: str, **fields):
     )
 
 
+shutting_down = False
+
+
+def handle_sigterm(signum, frame):
+    global shutting_down
+    shutting_down = True
+
+
 def validate_env():
     for var in ("EMAIL_VERIFICATION_QUEUE_URL", "VERIFY_API_URL"):
         if not os.getenv(var):
@@ -35,6 +44,7 @@ def validate_env():
 
 def main():
     validate_env()
+    signal.signal(signal.SIGTERM, handle_sigterm)
     queue_url = os.environ["EMAIL_VERIFICATION_QUEUE_URL"]
     verify_api_url = os.environ["VERIFY_API_URL"]
     sqs_client = boto3.client(
@@ -42,10 +52,27 @@ def main():
         endpoint_url=os.getenv("SQS_ENDPOINT_URL") or None,
         region_name=os.getenv("AWS_REGION", "us-east-1"),
     )
-    while True:
+    while not shutting_down:
         try:
-            result = sqs_client.receive_message(QueueUrl=queue_url, MaxNumberOfMessages=10, WaitTimeSeconds=20)
-            for message in result.get("Messages", []):
+            result = sqs_client.receive_message(QueueUrl=queue_url, MaxNumberOfMessages=10, WaitTimeSeconds=20,
+                                                 MessageSystemAttributeNames=["ApproximateReceiveCount"])
+        except Exception as e:
+            log("ERROR", "worker_receive_error", error=repr(e))
+            time.sleep(5)
+            continue
+        messages = result.get("Messages", [])
+        for index, message in enumerate(messages):
+            if shutting_down:
+                for remaining in messages[index:]:
+                    try:
+                        sqs_client.change_message_visibility(QueueUrl=queue_url,
+                                                             ReceiptHandle=remaining["ReceiptHandle"],
+                                                             VisibilityTimeout=0)
+                    except Exception as e:
+                        log("ERROR", "message_release_failed", message_id=remaining.get("MessageId"),
+                            error=repr(e))
+                break
+            try:
                 body = json.loads(message["Body"])
                 token = body["token"]
                 # TODO: send this URL to body["email"] instead of logging it
@@ -55,9 +82,12 @@ def main():
                     request_id=body.get("request_id"),
                     verify_url=f"{verify_api_url}?token={token}")
                 sqs_client.delete_message(QueueUrl=queue_url, ReceiptHandle=message["ReceiptHandle"])
-        except Exception as e:
-            log("ERROR", "worker_error", error=repr(e))
-            time.sleep(5)
+            except Exception as e:
+                log("ERROR", "message_processing_failed",
+                    message_id=message.get("MessageId"),
+                    receive_count=message.get("Attributes", {}).get("ApproximateReceiveCount"),
+                    error=repr(e))
+    log("INFO", "worker_shutdown")
 
 
 if __name__ == "__main__":
