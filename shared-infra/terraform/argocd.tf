@@ -114,7 +114,7 @@ resource "helm_release" "root_app" {
         source = {
           repoURL        = "https://github.com/STEFFENS-GITHUB/playground.git"
           targetRevision = "main"
-          path           = "infra/helm/root-app"
+          path           = "shared-infra/helm/root-app"
           helm = {
             valuesObject = {
               cluster = {

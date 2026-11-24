@@ -10,13 +10,13 @@ on:
         description: Terraform stack to plan and apply
         type: choice
         options:
-        - infra/terraform
+        - shared-infra/terraform
         - applications/journal-app/infra/terraform
-        default: infra/terraform
+        default: shared-infra/terraform
 
 env:
   ENVIRONMENT: ${{ inputs.environment || 'dev' }}
-  TF_DIR: ${{ inputs.stack || 'infra/terraform' }}
+  TF_DIR: ${{ inputs.stack || 'shared-infra/terraform' }}
 
 permissions: # Investigate this blocks purpose with OIDC
   id-token: write

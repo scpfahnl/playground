@@ -29,7 +29,7 @@ karpenter:
 karpenterNodePool:
   repoURL: https://github.com/STEFFENS-GITHUB/playground.git
   targetRevision: main
-  path: infra/helm/karpenter-nodepool
+  path: shared-infra/helm/karpenter-nodepool
 
 externalDns:
   repoURL: https://kubernetes-sigs.github.io/external-dns

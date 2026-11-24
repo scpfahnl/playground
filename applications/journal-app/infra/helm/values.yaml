@@ -1,7 +1,7 @@
 api:
   image:
     repository: steffenp123/journal-api
-    tag: latest
+    tag: "1.29"
   port: 8000
   serviceAccountName: api
   resources:

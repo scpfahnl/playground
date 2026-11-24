@@ -11,9 +11,6 @@ spec:
     path: {{ .Values.journalApp.path }}
     helm:
       valuesObject:
-        api:
-          image:
-            tag: "1.29"
         env: {{ .Values.cluster.env | quote }}
         ingress:
           host: {{ .Values.cluster.domain | quote }}
