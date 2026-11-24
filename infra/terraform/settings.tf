@@ -49,7 +49,7 @@ terraform {
   }
 
   backend "s3" {
-    key          = "journal/terraform.tfstate"
+    key          = "playground/terraform.tfstate"
     region       = "us-east-1"
     use_lockfile = true
     encrypt      = true

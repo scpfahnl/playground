@@ -27,7 +27,7 @@ karpenter:
   version: 1.14.1
 
 karpenterNodePool:
-  repoURL: https://github.com/STEFFENS-GITHUB/journal-app.git
+  repoURL: https://github.com/STEFFENS-GITHUB/playground.git
   targetRevision: main
   path: infra/helm/karpenter-nodepool
 
@@ -47,6 +47,6 @@ kubePrometheusStack:
   version: 92.0.0
 
 journalApp:
-  repoURL: https://github.com/STEFFENS-GITHUB/journal-app.git
+  repoURL: https://github.com/STEFFENS-GITHUB/playground.git
   targetRevision: main
-  path: infra/helm/journal-app
+  path: applications/journal-app/infra/helm

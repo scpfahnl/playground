@@ -14,6 +14,6 @@ spec:
       authenticationRef:
         name: worker-sqs
       metadata:
-        queueURL: {{ required "config.EMAIL_VERIFICATION_QUEUE_URL is required" .Values.config.EMAIL_VERIFICATION_QUEUE_URL | quote }}
+        queueURLFromEnv: EMAIL_VERIFICATION_QUEUE_URL
         awsRegion: {{ required "config.AWS_REGION is required" .Values.config.AWS_REGION | quote }}
         queueLength: {{ .Values.worker.autoscaling.queueLength | quote }}

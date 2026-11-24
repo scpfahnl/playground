@@ -1,7 +1,7 @@
 # EKS Auto Mode is disabled: it is only enabled when compute_config,
 # storage_config and kubernetes_network_config.elastic_load_balancing are set.
 resource "aws_eks_cluster" "main" {
-  name     = "${var.env}-journal-cluster"
+  name     = "${var.env}-playground-cluster"
   version  = "1.36"
   role_arn = aws_iam_role.eks_cluster.arn
 
@@ -40,7 +40,7 @@ locals {
 
 resource "aws_eks_node_group" "control" {
   cluster_name    = aws_eks_cluster.main.name
-  node_group_name = "${var.env}-journal-control"
+  node_group_name = "${var.env}-playground-control"
   node_role_arn   = aws_iam_role.eks_node.arn
   subnet_ids      = module.vpc.private_subnets
 
@@ -86,7 +86,7 @@ module "cloudwatch_pod_identity" {
   source  = "terraform-aws-modules/eks-pod-identity/aws"
   version = "2.9.0"
 
-  name                                       = "${var.env}-journal-cloudwatch-role"
+  name                                       = "${var.env}-playground-cloudwatch-role"
   use_name_prefix                            = false
   attach_aws_cloudwatch_observability_policy = true
 
@@ -107,7 +107,7 @@ module "ebs_csi_pod_identity" {
   source  = "terraform-aws-modules/eks-pod-identity/aws"
   version = "2.9.0"
 
-  name            = "${var.env}-journal-ebs-csi-role"
+  name            = "${var.env}-playground-ebs-csi-role"
   use_name_prefix = false
 
   attach_aws_ebs_csi_policy = true
@@ -125,48 +125,15 @@ module "ebs_csi_pod_identity" {
   }
 }
 
-module "api_pod_identity" {
-  source  = "terraform-aws-modules/eks-pod-identity/aws"
-  version = "2.9.0"
-
-  name            = "${var.env}-journal-api-role"
-  use_name_prefix = false
-
-  attach_custom_policy = true
-  policy_statements = [
-    {
-      actions = [
-        "sqs:SendMessage",
-        "sqs:GetQueueAttributes",
-      ]
-      resources = [aws_sqs_queue.journal_queue.arn]
-    }
-  ]
-
-  associations = {
-    api = {
-      cluster_name    = aws_eks_cluster.main.name
-      namespace       = "journal-app"
-      service_account = "api"
-    }
-  }
-
-  tags = {
-    Environment = var.env
-  }
-}
-
 module "external_secrets_pod_identity" {
   source  = "terraform-aws-modules/eks-pod-identity/aws"
   version = "2.9.0"
 
-  name            = "${var.env}-journal-external-secrets-role"
+  name            = "${var.env}-playground-external-secrets-role"
   use_name_prefix = false
 
   attach_external_secrets_policy = true
   external_secrets_secrets_manager_arns = [
-    aws_rds_cluster.aurora.master_user_secret[0].secret_arn,
-    aws_secretsmanager_secret.api_jwt_signing_key.arn,
     aws_secretsmanager_secret.grafana_admin.arn,
   ]
 
@@ -183,42 +150,11 @@ module "external_secrets_pod_identity" {
   }
 }
 
-module "worker_pod_identity" {
-  source  = "terraform-aws-modules/eks-pod-identity/aws"
-  version = "2.9.0"
-
-  name            = "${var.env}-journal-worker-role"
-  use_name_prefix = false
-
-  attach_custom_policy = true
-  policy_statements = [
-    {
-      actions = [
-        "sqs:ReceiveMessage",
-        "sqs:DeleteMessage",
-      ]
-      resources = [aws_sqs_queue.journal_queue.arn]
-    }
-  ]
-
-  associations = {
-    worker = {
-      cluster_name    = aws_eks_cluster.main.name
-      namespace       = "journal-app"
-      service_account = "worker"
-    }
-  }
-
-  tags = {
-    Environment = var.env
-  }
-}
-
 module "lb_controller_pod_identity" {
   source  = "terraform-aws-modules/eks-pod-identity/aws"
   version = "2.9.0"
 
-  name            = "${var.env}-journal-lb-controller-role"
+  name            = "${var.env}-playground-lb-controller-role"
   use_name_prefix = false
 
   attach_aws_lb_controller_policy = true
@@ -242,11 +178,11 @@ module "karpenter" {
 
   cluster_name = aws_eks_cluster.main.name
 
-  iam_role_name            = "${var.env}-journal-karpenter-role"
+  iam_role_name            = "${var.env}-playground-karpenter-role"
   iam_role_use_name_prefix = false
   enable_inline_policy     = true
 
-  node_iam_role_name            = "${var.env}-journal-karpenter-node-role"
+  node_iam_role_name            = "${var.env}-playground-karpenter-node-role"
   node_iam_role_use_name_prefix = false
   node_iam_role_additional_policies = {
     ssm = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
@@ -263,16 +199,8 @@ module "keda_pod_identity" {
   source  = "terraform-aws-modules/eks-pod-identity/aws"
   version = "2.9.0"
 
-  name            = "${var.env}-journal-keda-role"
+  name            = "${var.env}-playground-keda-role"
   use_name_prefix = false
-
-  attach_custom_policy = true
-  policy_statements = [
-    {
-      actions   = ["sqs:GetQueueAttributes"]
-      resources = [aws_sqs_queue.journal_queue.arn]
-    }
-  ]
 
   associations = {
     keda = {
@@ -291,7 +219,7 @@ module "external_dns_pod_identity" {
   source  = "terraform-aws-modules/eks-pod-identity/aws"
   version = "2.9.0"
 
-  name            = "${var.env}-journal-external-dns-role"
+  name            = "${var.env}-playground-external-dns-role"
   use_name_prefix = false
 
   attach_external_dns_policy    = true

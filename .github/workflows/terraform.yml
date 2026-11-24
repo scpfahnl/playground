@@ -1,4 +1,4 @@
-name: Journal Terraform Deploy
+name: Terraform
 on:
   workflow_dispatch:
     inputs:
@@ -6,10 +6,17 @@ on:
         description: Environment to plan and apply against
         type: environment
         default: dev
+      stack:
+        description: Terraform stack to plan and apply
+        type: choice
+        options:
+        - infra/terraform
+        - applications/journal-app/infra/terraform
+        default: infra/terraform
 
 env:
   ENVIRONMENT: ${{ inputs.environment || 'dev' }}
-  TF_DIR: infra/terraform
+  TF_DIR: ${{ inputs.stack || 'infra/terraform' }}
 
 permissions: # Investigate this blocks purpose with OIDC
   id-token: write

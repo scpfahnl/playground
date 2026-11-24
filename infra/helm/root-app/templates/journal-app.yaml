@@ -22,17 +22,11 @@ spec:
             api:
               image:
                 tag: "1.29"
+            env: '{{`{{index .metadata.labels "env"}}`}}'
             ingress:
               host: '{{`{{.metadata.annotations.domain}}`}}'
             config:
               AWS_REGION: '{{`{{.metadata.annotations.region}}`}}'
-              REDIS_URL: '{{`{{.metadata.annotations.redis_url}}`}}'
-              EMAIL_VERIFICATION_QUEUE_URL: '{{`{{.metadata.annotations.queue_url}}`}}'
-              DB_ENDPOINT: '{{`{{.metadata.annotations.db_endpoint}}`}}'
-              DB_NAME: '{{`{{.metadata.annotations.db_name}}`}}'
-            secrets:
-              dbSecretArn: '{{`{{.metadata.annotations.db_secret_arn}}`}}'
-              jwtSecretArn: '{{`{{.metadata.annotations.jwt_secret_arn}}`}}'
       destination:
         name: '{{`{{.name}}`}}'
         namespace: journal-app

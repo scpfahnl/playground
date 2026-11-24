@@ -112,7 +112,7 @@ resource "helm_release" "root_app" {
         namespace = helm_release.argocd.namespace
         project   = "default"
         source = {
-          repoURL        = "https://github.com/STEFFENS-GITHUB/journal-app.git"
+          repoURL        = "https://github.com/STEFFENS-GITHUB/playground.git"
           targetRevision = "main"
           path           = "infra/helm/root-app"
         }
@@ -148,16 +148,9 @@ resource "kubernetes_secret_v1" "argocd_cluster" {
       region       = "us-east-1"
       vpc_id       = module.vpc.vpc_id
       domain       = "${var.env}.${var.domain}"
-      redis_url    = "rediss://${aws_elasticache_serverless_cache.valkey.endpoint[0].address}:${aws_elasticache_serverless_cache.valkey.endpoint[0].port}"
-      queue_url    = aws_sqs_queue.journal_queue.url
-      db_endpoint  = aws_rds_cluster.aurora.endpoint
-      db_name      = aws_rds_cluster.aurora.database_name
 
       karpenter_queue = module.karpenter.queue_name
       node_role       = module.karpenter.node_iam_role_name
-
-      db_secret_arn  = aws_rds_cluster.aurora.master_user_secret[0].secret_arn
-      jwt_secret_arn = aws_secretsmanager_secret.api_jwt_signing_key.arn
 
       grafana_secret_arn = aws_secretsmanager_secret.grafana_admin.arn
     }

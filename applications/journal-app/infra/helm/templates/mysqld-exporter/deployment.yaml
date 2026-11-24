@@ -19,9 +19,14 @@ spec:
           image: "{{ .Values.mysqldExporter.image.repository }}:{{ .Values.mysqldExporter.image.tag }}"
           args:
             - --config.my-cnf=/etc/mysqld-exporter/my.cnf
-            - --mysqld.address={{ .Values.config.DB_ENDPOINT }}:3306
+            - --mysqld.address=$(DB_ENDPOINT):3306
             - --mysqld.username=$(DB_USERNAME)
           env:
+            - name: DB_ENDPOINT
+              valueFrom:
+                secretKeyRef:
+                  name: journal-app-secrets
+                  key: DB_ENDPOINT
             - name: DB_USERNAME
               valueFrom:
                 secretKeyRef:

@@ -16,7 +16,7 @@ module "vpc" {
   }
   private_subnet_tags = {
     "kubernetes.io/role/internal-elb" = "1"
-    "karpenter.sh/discovery"          = "${var.env}-journal-cluster"
+    "karpenter.sh/discovery"          = "${var.env}-playground-cluster"
   }
 
   # Instances launched into the public subnets get a public IP automatically
@@ -47,7 +47,7 @@ resource "aws_nat_gateway" "main" {
   availability_mode = "regional"
 
   tags = {
-    Name        = "${var.env}-journal-nat"
+    Name        = "${var.env}-playground-nat"
     Environment = var.env
   }
 }

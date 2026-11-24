@@ -10,4 +10,6 @@ dist/
 todo.txt
 discord.env
 **/.terraform/*
+tfplan
+*.tfplan
 /temp/
