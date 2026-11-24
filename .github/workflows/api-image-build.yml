@@ -4,8 +4,9 @@ on:
     branches:
     - main
     paths:
-    - 'services/api/**'
-    - 'compose.yaml'
+    - 'applications/journal-app/api/**'
+    - 'applications/journal-app/compose.yaml'
+    - 'applications/journal-app/elasticmq.conf'
     - '.github/workflows/api-image-build.yml'
 jobs:
   unit-test:
@@ -18,9 +19,9 @@ jobs:
       with:
         python-version: "3.12"
     - name: Install app dependancies
-      run: pip install -r services/api/requirements.txt
+      run: pip install -r applications/journal-app/api/requirements.txt
     - name: Run unit tests
-      run: pytest services/api/tests/unit
+      run: pytest applications/journal-app/api/tests/unit
 
   integration-test:
     runs-on: ubuntu-latest
@@ -45,20 +46,20 @@ jobs:
       with:
         python-version: "3.12"
     - name: Install app dependancies
-      run: pip install -r services/api/requirements.txt
+      run: pip install -r applications/journal-app/api/requirements.txt
     - name: Run docker compose
-      run: docker compose up -d --wait mysql elasticmq redis
+      run: docker compose -f applications/journal-app/compose.yaml up -d --wait mysql elasticmq redis
     - name: Run database migrations
-      run: alembic -c services/api/alembic.ini upgrade head
+      run: alembic -c applications/journal-app/api/alembic.ini upgrade head
       env:
         DATABASE_URL: ${{ secrets.DATABASE_URL_LOCAL }}
     - name: Seed journal API default user
       run: python -m api.init_db
       env:
         DATABASE_URL: ${{ secrets.DATABASE_URL_LOCAL }}
-        PYTHONPATH: services
+        PYTHONPATH: applications/journal-app
     - name: Run integration tests
-      run: pytest services/api/tests/integration
+      run: pytest applications/journal-app/api/tests/integration
       env:
         DATABASE_URL: ${{ secrets.DATABASE_URL_LOCAL }}
 
@@ -76,8 +77,8 @@ jobs:
     - name: Build and Push Docker Image
       uses: docker/build-push-action@v6
       with:
-        context: ./services/api
-        file: ./services/api/Dockerfile
+        context: ./applications/journal-app/api
+        file: ./applications/journal-app/api/Dockerfile
         push: true
         tags: |
           steffenp123/journal-api:1.${{ github.run_number }}

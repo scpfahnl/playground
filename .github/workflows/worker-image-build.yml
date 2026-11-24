@@ -4,7 +4,7 @@ on:
     branches:
     - main
     paths:
-    - 'services/worker/**'
+    - 'applications/journal-app/worker/**'
     - '.github/workflows/worker-image-build.yml'
 jobs:
   build-and-push:
@@ -20,8 +20,8 @@ jobs:
     - name: Build and Push Docker Image
       uses: docker/build-push-action@v6
       with:
-        context: ./services/worker
-        file: ./services/worker/Dockerfile
+        context: ./applications/journal-app/worker
+        file: ./applications/journal-app/worker/Dockerfile
         push: true
         tags: |
           steffenp123/journal-worker:1.${{ github.run_number }}
