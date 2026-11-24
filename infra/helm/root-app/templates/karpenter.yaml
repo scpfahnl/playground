@@ -1,49 +1,41 @@
 apiVersion: argoproj.io/v1alpha1
-kind: ApplicationSet
+kind: Application
 metadata:
   name: karpenter
   namespace: argocd
 spec:
-  goTemplate: true
-  goTemplateOptions: ["missingkey=error"]
-  generators:
-    - clusters: {}
-  template:
-    metadata:
-      name: karpenter
-    spec:
-      project: default
-      source:
-        repoURL: {{ .Values.karpenter.repoURL }}
-        chart: {{ .Values.karpenter.chart }}
-        targetRevision: {{ .Values.karpenter.version }}
-        helm:
-          releaseName: karpenter
-          valuesObject:
-            settings:
-              clusterName: '{{`{{.metadata.annotations.cluster_name}}`}}'
-              interruptionQueue: '{{`{{.metadata.annotations.karpenter_queue}}`}}'
-            serviceAccount:
-              name: karpenter
-            controller:
-              resources:
-                requests:
-                  cpu: 100m
-                  memory: 512Mi
-                limits:
-                  memory: 1Gi
-            nodeSelector:
-              {{- toYaml .Values.control.nodeSelector | nindent 14 }}
-            tolerations:
-              {{- toYaml .Values.control.tolerations | nindent 14 }}
-      destination:
-        name: '{{`{{.name}}`}}'
-        namespace: kube-system
-      syncPolicy:
-        automated:
-          prune: true
-          selfHeal: true
-        syncOptions:
-          - ServerSideApply=true
-        retry:
-          limit: -1
+  project: default
+  source:
+    repoURL: {{ .Values.karpenter.repoURL }}
+    chart: {{ .Values.karpenter.chart }}
+    targetRevision: {{ .Values.karpenter.version }}
+    helm:
+      releaseName: karpenter
+      valuesObject:
+        settings:
+          clusterName: {{ .Values.cluster.name | quote }}
+          interruptionQueue: {{ .Values.cluster.karpenterQueue | quote }}
+        serviceAccount:
+          name: karpenter
+        controller:
+          resources:
+            requests:
+              cpu: 100m
+              memory: 512Mi
+            limits:
+              memory: 1Gi
+        nodeSelector:
+          {{- toYaml .Values.control.nodeSelector | nindent 10 }}
+        tolerations:
+          {{- toYaml .Values.control.tolerations | nindent 10 }}
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kube-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true
+    retry:
+      limit: -1

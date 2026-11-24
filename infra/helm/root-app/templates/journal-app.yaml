@@ -1,40 +1,32 @@
 apiVersion: argoproj.io/v1alpha1
-kind: ApplicationSet
+kind: Application
 metadata:
   name: journal-app
   namespace: argocd
 spec:
-  goTemplate: true
-  goTemplateOptions: ["missingkey=error"]
-  generators:
-    - clusters: {}
-  template:
-    metadata:
-      name: journal-app
-    spec:
-      project: default
-      source:
-        repoURL: {{ .Values.journalApp.repoURL }}
-        targetRevision: {{ .Values.journalApp.targetRevision }}
-        path: {{ .Values.journalApp.path }}
-        helm:
-          valuesObject:
-            api:
-              image:
-                tag: "1.29"
-            env: '{{`{{index .metadata.labels "env"}}`}}'
-            ingress:
-              host: '{{`{{.metadata.annotations.domain}}`}}'
-            config:
-              AWS_REGION: '{{`{{.metadata.annotations.region}}`}}'
-      destination:
-        name: '{{`{{.name}}`}}'
-        namespace: journal-app
-      syncPolicy:
-        automated:
-          prune: true
-          selfHeal: true
-        syncOptions:
-          - CreateNamespace=true
-        retry:
-          limit: -1
+  project: default
+  source:
+    repoURL: {{ .Values.journalApp.repoURL }}
+    targetRevision: {{ .Values.journalApp.targetRevision }}
+    path: {{ .Values.journalApp.path }}
+    helm:
+      valuesObject:
+        api:
+          image:
+            tag: "1.29"
+        env: {{ .Values.cluster.env | quote }}
+        ingress:
+          host: {{ .Values.cluster.domain | quote }}
+        config:
+          AWS_REGION: {{ .Values.cluster.region | quote }}
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: journal-app
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: -1

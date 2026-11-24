@@ -1,33 +1,25 @@
 apiVersion: argoproj.io/v1alpha1
-kind: ApplicationSet
+kind: Application
 metadata:
   name: karpenter-nodepool
   namespace: argocd
 spec:
-  goTemplate: true
-  goTemplateOptions: ["missingkey=error"]
-  generators:
-    - clusters: {}
-  template:
-    metadata:
-      name: karpenter-nodepool
-    spec:
-      project: default
-      source:
-        repoURL: {{ .Values.karpenterNodePool.repoURL }}
-        targetRevision: {{ .Values.karpenterNodePool.targetRevision }}
-        path: {{ .Values.karpenterNodePool.path }}
-        helm:
-          valuesObject:
-            clusterName: '{{`{{.metadata.annotations.cluster_name}}`}}'
-            nodeRole: '{{`{{.metadata.annotations.node_role}}`}}'
-      destination:
-        name: '{{`{{.name}}`}}'
-      syncPolicy:
-        automated:
-          prune: true
-          selfHeal: true
-        syncOptions:
-          - SkipDryRunOnMissingResource=true
-        retry:
-          limit: -1
+  project: default
+  source:
+    repoURL: {{ .Values.karpenterNodePool.repoURL }}
+    targetRevision: {{ .Values.karpenterNodePool.targetRevision }}
+    path: {{ .Values.karpenterNodePool.path }}
+    helm:
+      valuesObject:
+        clusterName: {{ .Values.cluster.name | quote }}
+        nodeRole: {{ .Values.cluster.nodeRole | quote }}
+  destination:
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - SkipDryRunOnMissingResource=true
+    retry:
+      limit: -1

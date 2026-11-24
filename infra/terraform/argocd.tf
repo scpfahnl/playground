@@ -115,6 +115,20 @@ resource "helm_release" "root_app" {
           repoURL        = "https://github.com/STEFFENS-GITHUB/playground.git"
           targetRevision = "main"
           path           = "infra/helm/root-app"
+          helm = {
+            valuesObject = {
+              cluster = {
+                name             = aws_eks_cluster.main.name
+                env              = var.env
+                region           = "us-east-1"
+                vpcId            = module.vpc.vpc_id
+                domain           = "${var.env}.${var.domain}"
+                karpenterQueue   = module.karpenter.queue_name
+                nodeRole         = module.karpenter.node_iam_role_name
+                grafanaSecretArn = aws_secretsmanager_secret.grafana_admin.arn
+              }
+            }
+          }
         }
         destination = {
           server    = "https://kubernetes.default.svc"
@@ -129,35 +143,4 @@ resource "helm_release" "root_app" {
       }
     }
   })]
-
-  depends_on = [kubernetes_secret_v1.argocd_cluster]
-}
-
-resource "kubernetes_secret_v1" "argocd_cluster" {
-  metadata {
-    name      = "root-app-cluster-config"
-    namespace = helm_release.argocd.namespace
-
-    labels = {
-      "argocd.argoproj.io/secret-type" = "cluster"
-      env                              = var.env
-    }
-
-    annotations = {
-      cluster_name = aws_eks_cluster.main.name
-      region       = "us-east-1"
-      vpc_id       = module.vpc.vpc_id
-      domain       = "${var.env}.${var.domain}"
-
-      karpenter_queue = module.karpenter.queue_name
-      node_role       = module.karpenter.node_iam_role_name
-
-      grafana_secret_arn = aws_secretsmanager_secret.grafana_admin.arn
-    }
-  }
-
-  data = { # If remote-cluster rather then the one argo lives in, must have credentials here.
-    name   = aws_eks_cluster.main.name
-    server = "https://kubernetes.default.svc"
-  }
 }

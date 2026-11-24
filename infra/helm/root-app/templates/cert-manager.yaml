@@ -1,74 +1,66 @@
 apiVersion: argoproj.io/v1alpha1
-kind: ApplicationSet
+kind: Application
 metadata:
   name: cert-manager
   namespace: argocd
 spec:
-  goTemplate: true
-  goTemplateOptions: ["missingkey=error"]
-  generators:
-    - clusters: {}
-  template:
-    metadata:
-      name: cert-manager
-    spec:
-      project: default
-      source:
-        repoURL: {{ .Values.certManager.repoURL }}
-        chart: {{ .Values.certManager.chart }}
-        targetRevision: {{ .Values.certManager.version }}
-        helm:
-          releaseName: cert-manager
-          valuesObject:
-            crds:
-              enabled: true
-            global:
-              nodeSelector:
-                {{- toYaml .Values.control.nodeSelector | nindent 16 }}
-            resources:
-              requests:
-                cpu: 10m
-                memory: 64Mi
-              limits:
-                memory: 256Mi
-            tolerations:
-              {{- toYaml .Values.control.tolerations | nindent 14 }}
-            webhook:
-              resources:
-                requests:
-                  cpu: 10m
-                  memory: 32Mi
-                limits:
-                  memory: 128Mi
-              tolerations:
-                {{- toYaml .Values.control.tolerations | nindent 16 }}
-            cainjector:
-              resources:
-                requests:
-                  cpu: 10m
-                  memory: 128Mi
-                limits:
-                  memory: 256Mi
-              tolerations:
-                {{- toYaml .Values.control.tolerations | nindent 16 }}
-            startupapicheck:
-              resources:
-                requests:
-                  cpu: 10m
-                  memory: 32Mi
-                limits:
-                  memory: 64Mi
-              tolerations:
-                {{- toYaml .Values.control.tolerations | nindent 16 }}
-      destination:
-        name: '{{`{{.name}}`}}'
-        namespace: cert-manager
-      syncPolicy:
-        automated:
-          prune: true
-          selfHeal: true
-        syncOptions:
-          - CreateNamespace=true
-          - ServerSideApply=true
-        retry:
-          limit: -1
+  project: default
+  source:
+    repoURL: {{ .Values.certManager.repoURL }}
+    chart: {{ .Values.certManager.chart }}
+    targetRevision: {{ .Values.certManager.version }}
+    helm:
+      releaseName: cert-manager
+      valuesObject:
+        crds:
+          enabled: true
+        global:
+          nodeSelector:
+            {{- toYaml .Values.control.nodeSelector | nindent 12 }}
+        resources:
+          requests:
+            cpu: 10m
+            memory: 64Mi
+          limits:
+            memory: 256Mi
+        tolerations:
+          {{- toYaml .Values.control.tolerations | nindent 10 }}
+        webhook:
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 128Mi
+          tolerations:
+            {{- toYaml .Values.control.tolerations | nindent 12 }}
+        cainjector:
+          resources:
+            requests:
+              cpu: 10m
+              memory: 128Mi
+            limits:
+              memory: 256Mi
+          tolerations:
+            {{- toYaml .Values.control.tolerations | nindent 12 }}
+        startupapicheck:
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 64Mi
+          tolerations:
+            {{- toYaml .Values.control.tolerations | nindent 12 }}
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: cert-manager
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+    retry:
+      limit: -1

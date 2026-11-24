@@ -1,53 +1,45 @@
 apiVersion: argoproj.io/v1alpha1
-kind: ApplicationSet
+kind: Application
 metadata:
   name: external-dns
   namespace: argocd
 spec:
-  goTemplate: true
-  goTemplateOptions: ["missingkey=error"]
-  generators:
-    - clusters: {}
-  template:
-    metadata:
-      name: external-dns
-    spec:
-      project: default
-      source:
-        repoURL: {{ .Values.externalDns.repoURL }}
-        chart: {{ .Values.externalDns.chart }}
-        targetRevision: {{ .Values.externalDns.version }}
-        helm:
-          releaseName: external-dns
-          valuesObject:
-            provider:
-              name: aws
-            env:
-              - name: AWS_DEFAULT_REGION
-                value: '{{`{{.metadata.annotations.region}}`}}'
-            domainFilters:
-              - '{{`{{.metadata.annotations.domain}}`}}'
-            txtOwnerId: '{{`{{.metadata.annotations.cluster_name}}`}}'
-            txtPrefix: extdns-%{record_type}.
-            policy: sync
-            serviceAccount:
-              name: external-dns
-            resources:
-              requests:
-                cpu: 10m
-                memory: 64Mi
-              limits:
-                memory: 128Mi
-            nodeSelector:
-              {{- toYaml .Values.control.nodeSelector | nindent 14 }}
-            tolerations:
-              {{- toYaml .Values.control.tolerations | nindent 14 }}
-      destination:
-        name: '{{`{{.name}}`}}'
-        namespace: kube-system
-      syncPolicy:
-        automated:
-          prune: true
-          selfHeal: true
-        retry:
-          limit: -1
+  project: default
+  source:
+    repoURL: {{ .Values.externalDns.repoURL }}
+    chart: {{ .Values.externalDns.chart }}
+    targetRevision: {{ .Values.externalDns.version }}
+    helm:
+      releaseName: external-dns
+      valuesObject:
+        provider:
+          name: aws
+        env:
+          - name: AWS_DEFAULT_REGION
+            value: {{ .Values.cluster.region | quote }}
+        domainFilters:
+          - {{ .Values.cluster.domain | quote }}
+        txtOwnerId: {{ .Values.cluster.name | quote }}
+        txtPrefix: extdns-%{record_type}.
+        policy: sync
+        serviceAccount:
+          name: external-dns
+        resources:
+          requests:
+            cpu: 10m
+            memory: 64Mi
+          limits:
+            memory: 128Mi
+        nodeSelector:
+          {{- toYaml .Values.control.nodeSelector | nindent 10 }}
+        tolerations:
+          {{- toYaml .Values.control.tolerations | nindent 10 }}
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kube-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    retry:
+      limit: -1

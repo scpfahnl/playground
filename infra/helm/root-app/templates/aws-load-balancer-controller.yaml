@@ -1,45 +1,37 @@
 apiVersion: argoproj.io/v1alpha1
-kind: ApplicationSet
+kind: Application
 metadata:
   name: aws-load-balancer-controller
   namespace: argocd
 spec:
-  goTemplate: true
-  goTemplateOptions: ["missingkey=error"]
-  generators:
-    - clusters: {}
-  template:
-    metadata:
-      name: aws-load-balancer-controller
-    spec:
-      project: default
-      source:
-        repoURL: {{ .Values.awsLoadBalancerController.repoURL }}
-        chart: {{ .Values.awsLoadBalancerController.chart }}
-        targetRevision: {{ .Values.awsLoadBalancerController.version }}
-        helm:
-          releaseName: aws-load-balancer-controller
-          valuesObject:
-            clusterName: '{{`{{.metadata.annotations.cluster_name}}`}}'
-            region: '{{`{{.metadata.annotations.region}}`}}'
-            vpcId: '{{`{{.metadata.annotations.vpc_id}}`}}'
-            enableCertManager: true
-            resources:
-              requests:
-                cpu: 50m
-                memory: 128Mi
-              limits:
-                memory: 512Mi
-            nodeSelector:
-              {{- toYaml .Values.control.nodeSelector | nindent 14 }}
-            tolerations:
-              {{- toYaml .Values.control.tolerations | nindent 14 }}
-      destination:
-        name: '{{`{{.name}}`}}'
-        namespace: kube-system
-      syncPolicy:
-        automated:
-          prune: true
-          selfHeal: true
-        retry:
-          limit: -1
+  project: default
+  source:
+    repoURL: {{ .Values.awsLoadBalancerController.repoURL }}
+    chart: {{ .Values.awsLoadBalancerController.chart }}
+    targetRevision: {{ .Values.awsLoadBalancerController.version }}
+    helm:
+      releaseName: aws-load-balancer-controller
+      valuesObject:
+        clusterName: {{ .Values.cluster.name | quote }}
+        region: {{ .Values.cluster.region | quote }}
+        vpcId: {{ .Values.cluster.vpcId | quote }}
+        enableCertManager: true
+        resources:
+          requests:
+            cpu: 50m
+            memory: 128Mi
+          limits:
+            memory: 512Mi
+        nodeSelector:
+          {{- toYaml .Values.control.nodeSelector | nindent 10 }}
+        tolerations:
+          {{- toYaml .Values.control.tolerations | nindent 10 }}
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kube-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    retry:
+      limit: -1

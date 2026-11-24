@@ -1,38 +1,30 @@
 apiVersion: argoproj.io/v1alpha1
-kind: ApplicationSet
+kind: Application
 metadata:
   name: keda
   namespace: argocd
 spec:
-  goTemplate: true
-  goTemplateOptions: ["missingkey=error"]
-  generators:
-    - clusters: {}
-  template:
-    metadata:
-      name: keda
-    spec:
-      project: default
-      source:
-        repoURL: {{ .Values.keda.repoURL }}
-        chart: {{ .Values.keda.chart }}
-        targetRevision: {{ .Values.keda.version }}
-        helm:
-          releaseName: keda
-          valuesObject:
-            nodeSelector:
-              {{- toYaml .Values.control.nodeSelector | nindent 14 }}
-            tolerations:
-              {{- toYaml .Values.control.tolerations | nindent 14 }}
-      destination:
-        name: '{{`{{.name}}`}}'
-        namespace: keda
-      syncPolicy:
-        automated:
-          prune: true
-          selfHeal: true
-        syncOptions:
-          - CreateNamespace=true
-          - ServerSideApply=true
-        retry:
-          limit: -1
+  project: default
+  source:
+    repoURL: {{ .Values.keda.repoURL }}
+    chart: {{ .Values.keda.chart }}
+    targetRevision: {{ .Values.keda.version }}
+    helm:
+      releaseName: keda
+      valuesObject:
+        nodeSelector:
+          {{- toYaml .Values.control.nodeSelector | nindent 10 }}
+        tolerations:
+          {{- toYaml .Values.control.tolerations | nindent 10 }}
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: keda
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+    retry:
+      limit: -1
