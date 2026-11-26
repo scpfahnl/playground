@@ -1,0 +1,3 @@
+sqlalchemy==2.0.51
+psycopg[binary]
+boto3==1.43.56

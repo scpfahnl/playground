@@ -2,11 +2,12 @@ import json
 import os
 
 import boto3
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from db import get_db
-from models import Job
+from shared.db import get_db
+from shared.models import Job
 from schemas import SummarizeResponse
 
 router = APIRouter()
@@ -19,5 +20,13 @@ def summarize(db: Session = Depends(get_db)):
     db.add(job)
     db.commit()
 
-    sqs.send_message(QueueUrl=os.environ["QUEUE_URL"], MessageBody=json.dumps({"job_id": str(job.job_id)}))
+    try:
+        sqs.send_message(QueueUrl=os.environ["QUEUE_URL"], MessageBody=json.dumps({"job_id": str(job.job_id)}))
+    except Exception as e:
+        job.status = "failed"
+        job.error = str(e)
+        job.completed_at = func.now()
+        db.commit()
+        raise HTTPException(status_code=503, detail="Failed to queue job")
+
     return SummarizeResponse(job_id=job.job_id)

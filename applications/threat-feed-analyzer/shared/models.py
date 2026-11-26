@@ -5,7 +5,7 @@ from sqlalchemy import func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
-from db import Base
+from shared.db import Base
 
 
 class Job(Base):
