@@ -3,3 +3,4 @@ psycopg[binary]
 boto3==1.43.56
 requests
 feedparser
+opensearch-py

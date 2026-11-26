@@ -1,5 +1,8 @@
+import hashlib
+import html
 import json
 import os
+import re
 import signal
 import time
 import uuid
@@ -9,12 +12,14 @@ from datetime import datetime, timedelta, timezone
 import boto3
 import feedparser
 import requests
+from opensearchpy import OpenSearch, helpers
 from sqlalchemy import func
 
 from shared.db import SessionLocal
 from shared.models import Job
 
 sqs = boto3.client("sqs")
+opensearch = OpenSearch(os.environ["OPENSEARCH_URL"])
 QUEUE_URL = os.environ["QUEUE_URL"]
 running = True
 FEEDS = {
@@ -24,15 +29,23 @@ FEEDS = {
     "darkreading": "https://www.darkreading.com/rss.xml",
     "therecord": "https://therecord.media/feed",
     "krebsonsecurity": "https://krebsonsecurity.com/feed/",
-    "scworld": "https://www.scworld.com/rss",
     "infosecurity-magazine": "https://www.infosecurity-magazine.com/rss/news/",
     "cyberscoop": "https://cyberscoop.com/feed/",
     "helpnetsecurity": "https://www.helpnetsecurity.com/feed/",
     "securityaffairs": "https://securityaffairs.com/feed",
-    "csoonline": "https://www.csoonline.com/feed/",
     "cybersecuritydive": "https://www.cybersecuritydive.com/feeds/news/",
     "theregister": "https://www.theregister.com/security/headlines.atom",
     "arstechnica": "https://arstechnica.com/security/feed/",
+    "techcrunch": "https://techcrunch.com/category/security/feed/",
+    "zdnet": "https://www.zdnet.com/topic/security/rss.xml",
+    "wired": "https://www.wired.com/feed/category/security/latest/rss",
+    "hackread": "https://hackread.com/feed/",
+    "databreaches": "https://databreaches.net/feed/",
+    "theverge-security": "https://www.theverge.com/rss/cyber-security/index.xml",
+    "schneier": "https://www.schneier.com/feed/atom/",
+    "grahamcluley": "https://grahamcluley.com/feed/",
+    "siliconangle": "https://siliconangle.com/category/security/feed/",
+    "industrialcyber": "https://industrialcyber.co/feed/",
 }
 
 def stop(signum, frame):
@@ -62,7 +75,7 @@ def fetch_feed(source: str, url: str) -> list[dict]:
             "id": e.get("id", e.link),
             "title": e.title,
             "link": e.link,
-            "summary": e.get("summary", ""),
+            "summary": " ".join(html.unescape(re.sub(r"<[^>]+>", " ", re.sub(r"<p>The post .*? appeared first on .*?</p>", "", e.get("summary", "")))).split()),
             "published": published.isoformat(),
             "tags": [t.term for t in e.get("tags", [])],
         })
@@ -90,7 +103,15 @@ def run_job(job_id: uuid.UUID):
         job.status = "running"
         db.commit()
 
-        job.result = {"stories": fetch_stories()}
+        stories = fetch_stories()
+        docs = []
+        for s in stories:
+            if "failed" not in s:
+                docs.append({"_index": f"stories-{s['published'][:4]}","_id": hashlib.sha256(s["link"].encode()).hexdigest(), "_source": s})
+        # TODO: embed later when embedding model is running
+        helpers.bulk(opensearch, docs)
+
+        job.result = {"stories": stories} # TEMP, will be vLLM results not raw DB.
         job.status = "completed"
         job.completed_at = func.now()
         db.commit()
