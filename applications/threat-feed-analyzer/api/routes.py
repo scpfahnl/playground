@@ -17,8 +17,11 @@ sqs = boto3.client("sqs")
 @router.post("/summarize", response_model=SummarizeResponse)
 def summarize(db: Session = Depends(get_db)):
     job = Job()
-    db.add(job)
-    db.commit()
+    try:
+        db.add(job)
+        db.commit()
+    except Exception:
+        raise HTTPException(status_code=503, detail="Database unavailable")
 
     try:
         sqs.send_message(QueueUrl=os.environ["QUEUE_URL"], MessageBody=json.dumps({"job_id": str(job.job_id)}))
