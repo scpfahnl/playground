@@ -1,0 +1,6 @@
+fastapi==0.140.0
+uvicorn==0.51.0
+sqlalchemy==2.0.51
+psycopg[binary]
+boto3==1.43.56
+alembic
