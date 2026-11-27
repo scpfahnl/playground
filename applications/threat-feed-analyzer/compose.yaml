@@ -111,6 +111,8 @@ services:
         condition: service_completed_successfully
       elasticmq:
         condition: service_healthy
+      opensearch-migration-job:
+        condition: service_completed_successfully
 
   worker:
     build:
