@@ -1,0 +1,26 @@
+api:
+  image:
+    repository: steffenp123/tfa-api
+    tag: latest
+  port: 8000
+  serviceAccountName: api
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 512Mi
+
+worker:
+  image:
+    repository: steffenp123/tfa-worker
+    tag: latest
+  serviceAccountName: worker
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 512Mi
+
+config: {}
