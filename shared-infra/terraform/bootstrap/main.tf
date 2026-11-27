@@ -42,7 +42,7 @@ data "aws_iam_policy_document" "terraform_ci_trust" {
     condition {
       test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:STEFFENS-GITHUB@140848861/playground@1213998063:*"]
+      values   = ["repo:scpfahnl@140848861/playground@1213998063:*"]
     }
   }
 }
