@@ -1,0 +1,30 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: summarize
+  labels:
+    app: summarize
+spec:
+  schedule: {{ .Values.summarize.schedule | quote }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        metadata:
+          labels:
+            app: summarize
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: summarize
+              image: "{{ .Values.summarize.image.repository }}:{{ .Values.summarize.image.tag }}"
+              command: ["curl", "-sf", "-X", "POST", "http://{{ .Values.api.name }}/summarize"]
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 16Mi
+                limits:
+                  memory: 32Mi

@@ -8,3 +8,7 @@ data:
   {{- range $key, $value := .Values.config }}
   {{ $key }}: {{ $value | quote }}
   {{- end }}
+  CHAT_URL: "http://{{ .Values.vllm.chat.name }}/v1"
+  CHAT_MODEL: {{ .Values.vllm.chat.model | quote }}
+  EMBEDDING_URL: "http://{{ .Values.vllm.embedding.name }}/v1"
+  EMBEDDING_MODEL: {{ .Values.vllm.embedding.model | quote }}

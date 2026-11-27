@@ -1,0 +1,23 @@
+apiVersion: karpenter.k8s.aws/v1
+kind: EC2NodeClass
+metadata:
+  name: gpu
+spec:
+  role: {{ required "nodeRole is required" .Values.nodeRole }}
+  amiSelectorTerms:
+    - alias: {{ .Values.amiAlias }}
+  subnetSelectorTerms:
+    - tags:
+        karpenter.sh/discovery: {{ required "clusterName is required" .Values.clusterName }}
+  securityGroupSelectorTerms:
+    - tags:
+        aws:eks:cluster-name: {{ .Values.clusterName }}
+  blockDeviceMappings:
+    - deviceName: /dev/xvda
+      ebs:
+        volumeSize: {{ .Values.gpu.volumeSize }}
+        volumeType: gp3
+        encrypted: true
+        deleteOnTermination: true
+  kubelet:
+    maxPods: 30

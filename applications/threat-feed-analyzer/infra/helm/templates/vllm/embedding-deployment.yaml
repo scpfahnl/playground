@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.vllm.embedding.name }}
+  labels:
+    app: {{ .Values.vllm.embedding.name }}
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: {{ .Values.vllm.embedding.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.vllm.embedding.name }}
+    spec:
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: vllm
+          image: "{{ .Values.vllm.image.repository }}:{{ .Values.vllm.image.tag }}"
+          command: ["vllm", "serve"]
+          args:
+            - {{ .Values.vllm.embedding.model | quote }}
+            - "--runner"
+            - "pooling"
+            - "--port"
+            - "8000"
+            - "--max-model-len"
+            - {{ .Values.vllm.embedding.maxModelLen | quote }}
+            - "--gpu-memory-utilization"
+            - {{ .Values.vllm.embedding.gpuMemoryUtilization | quote }}
+          ports:
+            - name: http
+              containerPort: 8000
+          resources:
+            requests:
+              cpu: {{ .Values.vllm.embedding.resources.requests.cpu }}
+              memory: {{ .Values.vllm.embedding.resources.requests.memory }}
+            limits:
+              memory: {{ .Values.vllm.embedding.resources.limits.memory }}
+              nvidia.com/gpu: 1
+          volumeMounts:
+            - name: shm
+              mountPath: /dev/shm
+            - name: cache
+              mountPath: /root/.cache/huggingface
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 10
+            failureThreshold: 60
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+      volumes:
+        - name: shm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 1Gi
+        - name: cache
+          emptyDir: {}

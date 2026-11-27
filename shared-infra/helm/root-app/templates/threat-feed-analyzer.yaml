@@ -1,0 +1,29 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: threat-feed-analyzer
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: {{ .Values.threatFeedAnalyzer.repoURL }}
+    targetRevision: {{ .Values.threatFeedAnalyzer.targetRevision }}
+    path: {{ .Values.threatFeedAnalyzer.path }}
+    helm:
+      valuesObject:
+        env: {{ .Values.cluster.env | quote }}
+        ingress:
+          host: {{ printf "tfa.%s" .Values.cluster.domain | quote }}
+        config:
+          AWS_REGION: {{ .Values.cluster.region | quote }}
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: threat-feed-analyzer
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: -1

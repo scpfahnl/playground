@@ -1,0 +1,35 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: nvidia-device-plugin
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: {{ .Values.nvidiaDevicePlugin.repoURL }}
+    chart: {{ .Values.nvidiaDevicePlugin.chart }}
+    targetRevision: {{ .Values.nvidiaDevicePlugin.version }}
+    helm:
+      releaseName: nvidia-device-plugin
+      valuesObject:
+        config:
+          default: default
+          map:
+            default: |-
+              version: v1
+              sharing:
+                timeSlicing:
+                  resources:
+                    - name: nvidia.com/gpu
+                      replicas: {{ .Values.nvidiaDevicePlugin.timeSlicingReplicas }}
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: nvidia-device-plugin
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: -1

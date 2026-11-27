@@ -41,6 +41,12 @@ externalSecrets:
   chart: external-secrets
   version: 2.11.0
 
+nvidiaDevicePlugin:
+  repoURL: https://nvidia.github.io/k8s-device-plugin
+  chart: nvidia-device-plugin
+  version: 0.20.2
+  timeSlicingReplicas: 2
+
 kubePrometheusStack:
   repoURL: https://prometheus-community.github.io/helm-charts
   chart: kube-prometheus-stack
@@ -50,3 +56,8 @@ journalApp:
   repoURL: https://github.com/STEFFENS-GITHUB/playground.git
   targetRevision: main
   path: applications/journal-app/infra/helm
+
+threatFeedAnalyzer:
+  repoURL: https://github.com/scpfahnl/playground.git
+  targetRevision: main
+  path: applications/threat-feed-analyzer/infra/helm

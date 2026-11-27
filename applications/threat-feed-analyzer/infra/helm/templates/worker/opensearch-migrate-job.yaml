@@ -1,0 +1,33 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: opensearch-migrate
+  labels:
+    app: opensearch-migrate
+  annotations:
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/sync-wave: "-1"
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        app: opensearch-migrate
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: migrate
+          image: "{{ .Values.worker.image.repository }}:{{ .Values.worker.image.tag }}"
+          command: ["python", "shared/indexes.py"]
+          envFrom:
+            - configMapRef:
+                name: threat-feed-analyzer-config
+            - secretRef:
+                name: threat-feed-analyzer-secrets
+          resources:
+            requests:
+              cpu: {{ .Values.worker.resources.requests.cpu }}
+              memory: {{ .Values.worker.resources.requests.memory }}
+            limits:
+              memory: {{ .Values.worker.resources.limits.memory }}

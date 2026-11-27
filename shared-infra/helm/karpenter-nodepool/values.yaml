@@ -12,3 +12,11 @@ instanceCategories:
   - r
 
 cpuLimit: 16
+
+gpu:
+  instanceFamilies:
+    - g6
+  instanceSizes:
+    - xlarge
+  limit: 1
+  volumeSize: 100Gi
