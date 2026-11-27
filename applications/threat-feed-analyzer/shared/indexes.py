@@ -17,6 +17,7 @@ INDEXES = {
                 "summary": {"type": "text"},
                 "published": {"type": "date"},
                 "tags": {"type": "keyword"},
+                "embedding": {"type": "knn_vector", "dimension": 1024, "space_type": "cosinesimil"},
             },
         },
     },

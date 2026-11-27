@@ -21,6 +21,10 @@ from shared.models import Job
 sqs = boto3.client("sqs")
 opensearch = OpenSearch(os.environ["OPENSEARCH_URL"])
 QUEUE_URL = os.environ["QUEUE_URL"]
+EMBEDDING_URL = os.environ["EMBEDDING_URL"]
+EMBEDDING_MODEL = os.environ["EMBEDDING_MODEL"]
+CHAT_URL = os.environ["CHAT_URL"]
+CHAT_MODEL = os.environ["CHAT_MODEL"]
 running = True
 FEEDS = {
     "bleepingcomputer": "https://www.bleepingcomputer.com/feed/",
@@ -47,11 +51,24 @@ FEEDS = {
     "siliconangle": "https://siliconangle.com/category/security/feed/",
     "industrialcyber": "https://industrialcyber.co/feed/",
 }
+TOP_STORIES_PROMPT = (
+    "You are a security news analyst. You are given news stories from different sites about the same security event. "
+    "Write a short headline and a 2-3 sentence summary of the event."
+)
+TOP_STORIES_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "title": {"type": "string"},
+        "summary": {"type": "string"},
+    },
+    "required": ["title", "summary"],
+}
+SIMILARITY_SCORE = 0.875
 
 def stop(signum, frame):
     global running
     running = False
-    
+
 def fetch_feed(source: str, url: str) -> list[dict]:
     try:
         resp = requests.get(url, timeout=10, headers={"User-Agent": "threat-feed-analyzer/0.1"})
@@ -94,6 +111,61 @@ def fetch_stories() -> list[dict]:
     return stories
 
 
+def index_stories(stories: list[dict]) -> list[dict]:
+    docs = []
+    texts = []
+    for s in stories:
+        if "failed" not in s:
+            docs.append({"_index": f"stories-{s['published'][:4]}","_id": hashlib.sha256(s["link"].encode()).hexdigest(), "_source": dict(s)})
+            texts.append(s["title"] + "\n" + s["summary"])
+
+    resp = requests.post(f"{EMBEDDING_URL}/embeddings", json={"model": EMBEDDING_MODEL, "input": texts}, timeout=120)
+    resp.raise_for_status()
+    data = resp.json()["data"]
+    for i in range(len(docs)):
+        docs[i]["_source"]["embedding"] = data[i]["embedding"]
+    helpers.bulk(opensearch, docs, refresh=True)
+    return docs
+
+
+def group_stories(docs: list[dict]) -> list[dict]:
+    top_stories = []
+    seen = set()
+    for doc in docs:
+        if doc["_id"] in seen:
+            continue
+        hits = opensearch.search(index="stories-*", body={
+            "min_score": SIMILARITY_SCORE,
+            "query": {"knn": {"embedding": {"vector": doc["_source"]["embedding"], "k": 20, "filter": {"range": {"published": {"gte": "now-24h"}}}}}},
+        })["hits"]["hits"]
+        top_story = {"sources": [], "titles": [], "stories": [], "links": []}
+        for hit in hits:
+            if hit["_id"] not in seen:
+                seen.add(hit["_id"])
+                top_story["sources"].append(hit["_source"]["source"])
+                top_story["titles"].append(hit["_source"]["title"])
+                top_story["stories"].append(hit["_source"]["title"] + "\n" + hit["_source"]["summary"])
+                top_story["links"].append(hit["_source"]["link"])
+        if len(set(top_story["sources"])) > 1:
+            top_stories.append(top_story)
+    top_stories.sort(key=lambda top_story: len(set(top_story["sources"])), reverse=True)
+    return top_stories[:5]
+
+
+def summarize_group(top_story: dict) -> dict:
+    resp = requests.post(f"{CHAT_URL}/chat/completions", json={
+        "model": CHAT_MODEL,
+        "temperature": 0,
+        "messages": [
+            {"role": "system", "content": TOP_STORIES_PROMPT},
+            {"role": "user", "content": "\n\n".join(top_story["stories"])},
+        ],
+        "response_format": {"type": "json_schema", "json_schema": {"name": "top_story", "schema": TOP_STORIES_SCHEMA}},
+    }, timeout=120)
+    resp.raise_for_status()
+    return json.loads(resp.json()["choices"][0]["message"]["content"])
+
+
 def run_job(job_id: uuid.UUID):
     with SessionLocal() as db:
         job = db.get(Job, job_id)
@@ -103,15 +175,12 @@ def run_job(job_id: uuid.UUID):
         job.status = "running"
         db.commit()
 
-        stories = fetch_stories()
-        docs = []
-        for s in stories:
-            if "failed" not in s:
-                docs.append({"_index": f"stories-{s['published'][:4]}","_id": hashlib.sha256(s["link"].encode()).hexdigest(), "_source": s})
-        # TODO: embed later when embedding model is running
-        helpers.bulk(opensearch, docs)
+        docs = index_stories(fetch_stories())
+        top_stories = group_stories(docs)
+        for top_story in top_stories:
+            top_story.update(summarize_group(top_story))
 
-        job.result = {"stories": stories} # TEMP, will be vLLM results not raw DB.
+        job.result = {"top_stories": top_stories}
         job.status = "completed"
         job.completed_at = func.now()
         db.commit()
