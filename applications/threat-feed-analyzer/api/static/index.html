@@ -9,13 +9,11 @@
   h1 { font-size: 26px; margin-bottom: 4px; }
   h2 { font-size: 18px; margin-top: 40px; border-bottom: 1px solid #ddd; padding-bottom: 6px; }
   button { padding: 8px 16px; cursor: pointer; border: 1px solid #1f2328; background: #1f2328; color: #fff; border-radius: 6px; }
-  button:disabled { opacity: 0.5; cursor: default; }
   input { padding: 8px; width: 60%; border: 1px solid #bbb; border-radius: 6px; }
   .story { border: 1px solid #ddd; border-radius: 8px; padding: 14px 18px; margin: 14px 0; }
   .story h3 { margin: 0 0 6px; font-size: 16px; }
   .story p { margin: 6px 0; }
   .meta { color: #666; font-size: 13px; }
-  .status { color: #666; margin-left: 12px; }
   ul { padding-left: 20px; margin: 8px 0 0; font-size: 14px; }
   a { color: #0969da; }
 </style>
@@ -25,7 +23,7 @@
 <div class="meta">Top security events from the last 24 hours</div>
 
 <h2>Top stories</h2>
-<button id="summarize">Run summary</button><span id="status" class="status"></span>
+<div id="status" class="meta"></div>
 <div id="top-stories"></div>
 
 <h2>Search</h2>
@@ -48,44 +46,6 @@ function addLink(parent, text, href) {
   const link = addElement(parent, "a", text);
   link.href = href;
   link.target = "_blank";
-}
-
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-async function runSummary() {
-  const button = document.getElementById("summarize");
-  const status = document.getElementById("status");
-  const container = document.getElementById("top-stories");
-  button.disabled = true;
-  container.innerHTML = "";
-  status.textContent = "Starting...";
-
-  const resp = await fetch("/summarize", { method: "POST" });
-  if (!resp.ok) {
-    status.textContent = "Failed to start job";
-    button.disabled = false;
-    return;
-  }
-  const data = await resp.json();
-  const jobId = data.job_id;
-
-  while (true) {
-    await sleep(3000);
-    const job = await (await fetch("/jobs/" + jobId)).json();
-    status.textContent = job.status + "...";
-    if (job.status === "failed") {
-      status.textContent = "Failed: " + job.error;
-      break;
-    }
-    if (job.status === "completed") {
-      status.textContent = "";
-      showTopStories(job.result.top_stories);
-      break;
-    }
-  }
-  button.disabled = false;
 }
 
 function showTopStories(topStories) {
@@ -132,7 +92,6 @@ async function loadLatest() {
   showTopStories(job.result.top_stories);
 }
 
-document.getElementById("summarize").addEventListener("click", runSummary);
 loadLatest();
 document.getElementById("search-form").addEventListener("submit", search);
 </script>
