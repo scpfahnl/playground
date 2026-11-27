@@ -12,6 +12,7 @@ on:
         options:
         - shared-infra/terraform
         - applications/journal-app/infra/terraform
+        - applications/threat-feed-analyzer/infra/terraform
         default: shared-infra/terraform
 
 env:
