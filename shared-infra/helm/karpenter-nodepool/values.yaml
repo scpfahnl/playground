@@ -16,6 +16,7 @@ cpuLimit: 16
 gpu:
   instanceFamilies:
     - g6
+    - g5
   instanceSizes:
     - xlarge
   limit: 1
