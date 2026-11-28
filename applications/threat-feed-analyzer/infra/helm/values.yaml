@@ -50,7 +50,7 @@ vllm:
   embedding:
     name: vllm-embedding
     model: Qwen/Qwen3-Embedding-0.6B
-    maxModelLen: 8192
+    maxModelLen: 2048
     gpuMemoryUtilization: 0.25
     resources:
       requests:
