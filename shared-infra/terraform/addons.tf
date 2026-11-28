@@ -120,12 +120,21 @@ resource "aws_eks_addon" "cloudwatch_observability" {
   addon_name   = "amazon-cloudwatch-observability"
 
   configuration_values = jsonencode({
+    containerLogs      = { enabled = true }
+    containerInsights  = { enabled = false }
+    applicationSignals = { enabled = false }
+    kubeStateMetrics   = { enabled = false }
+    nodeExporter       = { enabled = false }
+    dcgmExporter       = { enabled = false }
     manager = {
       nodeSelector = local.control_node_selector
       tolerations  = local.control_tolerations
       resources = {
         requests = { cpu = "100m", memory = "64Mi" }
         limits   = { memory = "256Mi" }
+      }
+      applicationSignals = {
+        autoMonitor = { monitorAllServices = false }
       }
     }
   })
